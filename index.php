@@ -28,7 +28,7 @@
 			}
 			//printf($_SESSION); //me permite ver las n conexiones
 
-			header('Location: //localhost:80/ProyectoAWCS/Principal.php');
+			header('Location: //localhost:80/proyecto_aws/proyecto_aws/Principal.php');
 
 			//echo $_SESSION["NombreSesion"] . " -- " . $_SESSION["Rol"];
 
