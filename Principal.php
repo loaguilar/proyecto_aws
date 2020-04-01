@@ -1,15 +1,39 @@
 <?php
-  session_start();
+  session_start(); //SE INICIA LA SESIÓN DE ACUERDO AL USUARIO LOGEADO
   include 'db_connection.php';
-  $conn = OpenCon();
+  $conn = OpenCon(); //SE ABRE CONEXIÓN PHP HACIA LA BASE DE DATOS
+  $conn1 = OpenCon(); //SE VUELVE ABRIR CONEXIÓN PHP HACIA LA BASE DE DATOS PARA PODER EJECTUR DOS QUERIES AL MISMO TIEMPO
       
-  $habitaciones = 'SELECT ID_Habitacion, NombreHabitacion FROM habitaciones';
+  //SE DECLARA LA VARIABLE $habitaciones PARA CONSULTAR DATOS DE LAS HABITACIONES CON ESTADO DISPONIBLE
+  $habitaciones = 'SELECT ID_Habitacion, NombreHabitacion FROM habitaciones WHERE Estado = "Disponible" ';
   $listaHabitaciones = $conn -> query($habitaciones);
 
+  //SE DECLARA LA VARIABLE $cedulas PARA CONSULTAR DATOS DE LOS CLIENTES PARA AÑADIR LA RESERVA
   $cedulas = 'SELECT ID_Cedula, NombreCompleto FROM clientes';
   $listaCedulas = $conn -> query($cedulas);
 
-  CloseCon($conn);
+  //CÓDIGO QUE SE EJECUTA AL PRESIONAR EL BOTÓN "Reservar"
+  if(isset($_POST['btnReservar']))
+  {
+    //Variables donde se almacenas los datos de los campos del formulario
+    $cedulaCl = $_POST['cedula'];
+    $habHotel = $_POST['habitacion'];
+    $in       = $_POST['entrada'];
+    $out      = $_POST['salida'];
+
+    //CONSULTA PARA INSERTAR UNA NUEVA RESERVA EN LA BASE DE DATOS
+    $sql = "INSERT INTO reservasactivas (ID_Habitacion, ID_Cedula, FechaEntrada, FechaSalida)
+    VALUES ('$habHotel', '$cedulaCl', '$in', '$out')";
+
+    //CONSULTA PARA ACTUALIZAR EL ESTADO A "Ocupada" DE LA HABITACIÓN SOBRE LA CUAL SE HIZO LA RESERVA
+    $sql1 = "UPDATE habitaciones SET Estado = 'Ocupada' WHERE ID_Habitacion = " . $habHotel;
+
+    $conn-> query($sql); //SE EJECUTA EL QUERY "INSERT" CON LA PRIMER VARIABLE DE CONEXIÓN CREADA AL INICIO
+    $conn1-> query($sql1); //SE EJECUTA EL QUERY "UPDATE" CON LA SEGUNDA VARIABLE DE CONEXIÓN CREADA AL INICIO
+
+  }
+
+  CloseCon($conn); //SE CIERRA LA CONEXIÓN A LA BASE DE DATOS
   
 ?>
 
@@ -35,6 +59,7 @@
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 
+<! CÓDIGO DE LA PARTE SUPERIOR DE LA INTERFAZ, SE PRESENTA EL BOTÓN DE INICIO, EL DE SALIR Y EL DE BIENVENIDA -->
 <div class="wrapper">
 
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
@@ -47,13 +72,14 @@
       </li>
       <li class="nav-item d-none d-sm-inline-block">
         <?php
-          session_destroy();
+          session_destroy(); //SE CIERRA LA SESIÓN AL PRESIONAR BOTÓN DE "SALIR"
         ?>
         <a href="//localhost:80/ProyectoAWCS/index.php" class="nav-link">Salir</a>
       </li>
       <li class="nav-item d-none d-sm-inline-block">
         <b><a href="#" class="nav-link">
           <?php
+           //SE CONSULTA LA VARIABLE DE SESIÓN CON EL NOMBRE DE LA MISMA OBTENIDAS EN EL LOGIN.
            echo "Bienvenido, " . $_SESSION["NombreSesion"] ;
           ?>
         </a>
@@ -62,6 +88,7 @@
     </ul>
   </nav>
   
+  <! CÓDIGO DEL MENÚ LATERAL, EN EL CUAL SE MUESTRAN LAS OPCIONES QUE PUEDE EJECUTAR CADA USUARIO DE ACUERDO A SU ROL -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <a href="#" class="brand-link" style="border-bottom:0px!important">
       <img src="dist/img/Logo.png" class="brand-image img-circle elevation-3"
@@ -72,7 +99,11 @@
 	 <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
+
           <?php if($_SESSION["Rol"] == 1) { ?>
+
+            <! SE VALIDA SI EL VALOR DE LA VARIABLE DE SESIÓN "ROL" ES 1, LO QUE ES IGUAL A "ADMINISTRADOR" 
+            CUENTA CON MÁS OPCIONES DE MENÚ-->
 
            <li class="nav-item has-treeview">
             <a href="#" class="nav-link">
@@ -177,9 +208,14 @@
             </ul>
           </li>
 
-          <?php }?>
+          <?php }?> 
+
+
 
           <?php if($_SESSION["Rol"] == 2) { ?>
+
+          <! SE VALIDA SI EL VALOR DE LA VARIABLE DE SESIÓN "ROL" ES 2, LO QUE ES IGUAL A "EMPLEADO" 
+          CUENTA CON MENOS OPCIONES DE MENÚ-->
 
           <li class="nav-item has-treeview">
             <a href="#" class="nav-link">
@@ -244,8 +280,10 @@
 	
   </aside>
 
-    
 
+  <! SE CREA EL FORMULARIO QUE PERMITIRÁ REALIZAR UNA RESERVA AL COMPLETAR LOS CAMPOS Y PRESIONAR EL BOTÓN -->    
+  <form action="" method="post">
+  
   <div class="content-wrapper">
 
     <section class="content">
@@ -261,10 +299,13 @@
 
                 <div class="row" style="margin-bottom: 4%;">
 
+                  <! SE CREA UN DROPDOWN EN DONDE SE MUESTRAN LOS NOMBRES DE LOS CLIENTES REGISTRADOS -->
                   <div class="col-6">
-                    <p style="text-align: left;">Cédula Cliente</p>
-                    <select class="form-control" id="tipoCedula" size=1>
+                    <p style="text-align: left;">Cliente</p>
+                    <select class="form-control" id="tipoCedula" size=1 name="cedula">
                       <?php
+                        //SE LLAMA A LA VARIABLE "$listaCedulas" CREADA AL INICIO DEL CÓDIGO
+                        //SE RECORRE LA VARIABLE Y SE INSERTAN LOS DATOS EN EL DROPDOWN 
                         echo "<option value='0'>Seleccione</option>";
                         while($row1 = mysqli_fetch_array($listaCedulas)) 
                           {
@@ -274,10 +315,13 @@
                     </select>
                   </div>
 
+                  <! SE CREA UN DROPDOWN EN DONDE SE MUESTRAN LOS NOMBRES DE LAS HABITACIONES DISPONIBLES -->
                   <div class="col-6">
                     <p style="text-align: left;">Habitación</p>
-                    <select class="form-control" id="tipoHabitacion" size=1>
+                    <select class="form-control" id="tipoHabitacion" size=1 name="habitacion">
                       <?php
+                        //SE LLAMA A LA VARIABLE "$listaHabitaciones" CREADA AL INICIO DEL CÓDIGO
+                        //SE RECORRE LA VARIABLE Y SE INSERTAN LOS DATOS EN EL DROPDOWN 
                         echo "<option value='0'>Seleccione</option>";
                         while($row1 = mysqli_fetch_array($listaHabitaciones)) 
                           {
@@ -289,16 +333,17 @@
 
                 </div>
 
+                <! SE CREAN LOS CAMPOS DE TIPO FECHA PARA LOS DATOS CORRESPONDIENTES -->
                 <div class="row" style="margin-bottom: 4%;">
 
                   <div class="col-6">
                     <p style="text-align: left;">Fecha de Entrada</p>
-                    <input type="date" class="form-control" style="text-align: center;">
+                    <input type="date" class="form-control" style="text-align: center;" name="entrada">
                   </div>
 
                   <div class="col-6">
                     <p style="text-align: left;">Fecha de Salida</p>
-                    <input type="date" class="form-control" style="text-align: center;">
+                    <input type="date" class="form-control" style="text-align: center;" name="salida">
                   </div>
 
                 </div>
@@ -306,7 +351,7 @@
                 <div class="row">
 
                   <div class="col-12">
-                    <input class="btn btn-success form-control" type="submit" id="btnValidar" name="btnValidar" value="Reservar"></input>
+                    <input class="btn btn-success form-control" type="submit" id="btnReservar" name="btnReservar" value="Reservar"></input>
                   </div>
 
         </div>
@@ -315,8 +360,9 @@
 	  </div>
     </section>
 
-   
   </div>
+
+  </form>
   
   <footer class="main-footer">
     <strong>Proyecto AWCS &copy; 2020. </strong>
